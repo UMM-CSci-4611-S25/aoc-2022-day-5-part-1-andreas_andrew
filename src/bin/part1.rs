@@ -42,6 +42,8 @@ fn main() {
 pub enum ParseError {
     // Add different variants as you discover different kinds of parsing errors.
     // This could include things like too many stacks, illegal strings on a stack, etc.
+    InvalidStackNumber,
+    InvalidFormat,
 }
 
 const NUM_STACKS: usize = 9;
@@ -92,7 +94,21 @@ impl FromStr for Stacks {
     // Note that the stack numbers start at 1 and you'll need the indices
     // in `Stacks::stacks` to start at 0.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let mut stacks = core::array::from_fn(|_| Stack::default());
+
+        for line in s.lines() {
+            let mut parts = line.split_ascii_whitespace();
+            let stack_num: usize = parts.next().ok_or(ParseError::InvalidFormat)?.parse().map_err(|_| ParseError::InvalidFormat)?;
+            let stack_contents: Vec<char> = parts.map(|c| c.chars().next().unwrap()).collect();
+
+            if stack_num == 0 || stack_num > NUM_STACKS {
+                return Err(ParseError::InvalidStackNumber);
+            }
+
+            stacks[stack_num - 1] = Stack { stack: stack_contents };
+        }
+
+        Ok(Stacks { stacks })
     }
 }
 
@@ -111,7 +127,11 @@ impl FromStr for Stack {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let mut parts = s.split_ascii_whitespace();
+        // parts.next();
+        todo!();
+        let stack: Vec<char> = parts.map(|c| c.chars().next().unwrap()).collect();
+        Ok(Stack { stack })
     }
 }
 
@@ -121,7 +141,11 @@ impl FromStr for Stack {
 // using something like ``assert_eq!(stack, vec!['A', 'B', 'C'])`.
 impl PartialEq<Vec<char>> for Stack {
     fn eq(&self, other: &Vec<char>) -> bool {
-        todo!()
+        if self == other {
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -142,7 +166,7 @@ impl FromStr for CraneInstruction {
     // then parse into `usize` using a `map` statement. You could also just
     // "reach" into the split string directly if you find that easier.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        todo!();
     }
 }
 
@@ -168,7 +192,7 @@ mod tests {
 
     // Test that we can parse stacks correctly.
     #[test]
-    #[ignore = "We haven't implemented stack parsing yet"]
+    //#[ignore = "We haven't implemented stack parsing yet"]
     fn test_from_str() {
         // The `\` at the end of the line escapes the newline and all following whitespace.
         let input = "1 Z N\n\
