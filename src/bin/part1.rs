@@ -98,12 +98,23 @@ impl FromStr for Stacks {
 
         for line in s.lines() {
             let mut parts = line.split_ascii_whitespace();
-            let stack_num: usize = parts.next().ok_or(ParseError::InvalidFormat)?.parse().map_err(|_| ParseError::InvalidFormat)?;
-            let stack_contents: Vec<char> = parts.map(|c| c.chars().next().unwrap()).collect();
+            let stack_num: usize = parts
+                .next()
+                .ok_or(ParseError::InvalidFormat)?
+                .parse()
+                .map_err(|_| ParseError::InvalidFormat)?;
+            // let stack_contents: Vec<char> = parts.map(|c| c.chars().next().unwrap()).collect();
 
             if stack_num == 0 || stack_num > NUM_STACKS {
                 return Err(ParseError::InvalidStackNumber);
             }
+
+            let stack_contents: Vec<char> = parts.map(|c| c.chars().next().unwrap()).collect();
+
+            // let stack_contents: Vec<char> = parts.flat_map(|s| s.chars()).collect();
+            // I think flatmap here is not needed for our tests but 
+            // i look into it and the flatmap would help when we have cases like 
+            // 1 AA B C and it would regconize as 1 A A B C 
 
             stacks[stack_num - 1] = Stack { stack: stack_contents };
         }
@@ -127,11 +138,14 @@ impl FromStr for Stack {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut parts = s.split_ascii_whitespace();
-        // parts.next();
-        todo!();
-        let stack: Vec<char> = parts.map(|c| c.chars().next().unwrap()).collect();
-        Ok(Stack { stack })
+    let mut parts = s.split_ascii_whitespace();
+    parts.next(); // Skip the stack number
+
+    let stack: Vec<char> = parts.map(|c| c.chars().next().unwrap()).collect();
+
+    // this is for if we use flat map 
+    // let stack: Vec<char> = s.split_ascii_whitespace().flat_map(|s| s.chars()).collect();
+    Ok(Stack { stack })
     }
 }
 
@@ -141,11 +155,14 @@ impl FromStr for Stack {
 // using something like ``assert_eq!(stack, vec!['A', 'B', 'C'])`.
 impl PartialEq<Vec<char>> for Stack {
     fn eq(&self, other: &Vec<char>) -> bool {
-        if self == other {
-            true
-        } else {
-            false
-        }
+        // if self == other {
+        //     true
+        // } else {
+        //     false
+        // }
+        // This might cause stack overflow as 
+        // it self == order causes infinite recursion because of self == other calls eq() recursively ?
+        self.stack == *other
     }
 }
 
