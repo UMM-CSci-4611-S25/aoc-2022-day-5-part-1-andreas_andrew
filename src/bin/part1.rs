@@ -183,7 +183,24 @@ impl FromStr for CraneInstruction {
     // then parse into `usize` using a `map` statement. You could also just
     // "reach" into the split string directly if you find that easier.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!();
+        let parts: Vec<&str> = s.split_ascii_whitespace().collect();
+
+        // move 13 from 8 to 7 -> should be length of 6 parts, with move, from, to in right places
+        if parts.len() != 6 || parts[0] != "move" || parts[2] != "from" || parts[4] != "to" {
+            return Err(ParseError::InvalidFormat);
+        }
+
+        // if format is correctly follow then we extract an convert numbers to usize
+        let num_to_move = parts[1].parse().map_err(|_| ParseError::InvalidFormat)?;
+        let from_stack = parts[3].parse().map_err(|_| ParseError::InvalidFormat)?;
+        let to_stack = parts[5].parse().map_err(|_| ParseError::InvalidFormat)?;
+        // if any parts that have number is not a number but like a character then we return invalid format
+
+        Ok(CraneInstruction {
+            num_to_move,
+            from_stack,
+            to_stack,
+        })
     }
 }
 
@@ -195,7 +212,13 @@ impl FromStr for CraneInstructions {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let instructions = s
+            .lines()
+            // converts each line into a CraneInstruction
+            .map(|line| line.parse()) 
+            .collect::<Result<Vec<CraneInstruction>, ParseError>>()?;
+
+        Ok(CraneInstructions { instructions })
     }
 }
 
@@ -230,7 +253,7 @@ mod tests {
 
     // Test that we can parse instructions correctly.
     #[test]
-    #[ignore = "We haven't implemented instruction parsing yet"]
+    // #[ignore = "We haven't implemented instruction parsing yet"]
     fn test_instruction_parsing() {
         let input = "move 1 from 2 to 1\nmove 3 from 1 to 3";
         let instructions: CraneInstructions = input.parse().unwrap();
