@@ -98,12 +98,23 @@ impl Stacks {
     /// in `self`. Return the new set of stacks, or a `CraneError` if
     /// any of the instructions are invalid.
     fn apply_instructions(self, instructions: &CraneInstructions) -> Result<Self, CraneError> {
-        todo!()
+
+        // we would want to return Crane error of any of the instruction would fails ?
+        // we want to loop through each instruction one by one and apply them to the stack
+        // iterates over all crane instructions
+        // starting with the initial state of the stacks then apply instruction one by one?
+        instructions.instructions.iter().try_fold(self, |stacks, instruction | {
+            stacks.apply_instruction(instruction)
+        })
     }
 
     /// Return a string containing the top character of each stack in order.
     /// The stacks should all be non-empty; if any is empty return a `CraneError`.
     fn tops_string(&self) -> Result<String, CraneError> {
+        // we need to get the top char from each stack -> copy it instead of moving it?
+        // cases were stack is empty we return CraneError as well
+
+        // top char should be the last character in a stack 
         todo!()
     }
 }
@@ -339,7 +350,7 @@ mod tests {
 
     // This essentially runs `main()` and checks that the results are correct for part 1.
     #[test]
-    #[ignore = "We haven't implemented the `apply_instructions` method yet"]
+    // #[ignore = "We haven't implemented the `apply_instructions` method yet"]
     fn test_part_1() {
         let contents =
             fs::read_to_string(INPUT_FILE).expect(&format!("Failed to open file '{INPUT_FILE}'"));
