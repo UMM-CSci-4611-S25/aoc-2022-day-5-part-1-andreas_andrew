@@ -59,6 +59,8 @@ enum CraneError {
     // that can occur when applying a crane instruction.
     // This could include things like trying to move from an empty stack,
     // trying to get the top of an empty stack, etc.
+    InvalidStackNumber,
+    MoveFromEmptyStack,
 }
 
 impl Stacks {
@@ -66,8 +68,31 @@ impl Stacks {
     /// Return the new set of stacks, or a `CraneError` if the instruction
     /// is invalid.
     fn apply_instruction(mut self, instruction: &CraneInstruction) -> Result<Self, CraneError> {
-        todo!()
-    }
+        if instruction.from_stack >= NUM_STACKS || instruction.to_stack >= NUM_STACKS {
+            return Err(CraneError::InvalidStackNumber);
+
+            // check cases if instruction are trying to move more items than the stack has
+            // like Stack 1 have A B but try to move 3 items from them
+        } else if self.stacks[instruction.from_stack].stack.len() < instruction.num_to_move{
+            return Err(CraneError::MoveFromEmptyStack);
+        } 
+        
+        // removes last items in num_to_move and return them in items_to_move
+        let mut items_to_move = self.stacks[instruction.from_stack]
+            .stack
+            .split_off(self.stacks[instruction.from_stack].stack.len() - instruction.num_to_move);
+        
+        // reverse the order of moved items, so that it match the way boxes are move around stack
+        // like if we move A B C from stack 1 to stack 2
+        // it would be as A B C to stack 2 and the reverse order would be C B A (which is the correct order)
+        items_to_move.reverse();
+
+        // append reversed items to the stack that we want to move to
+        self.stacks[instruction.to_stack].stack.append(&mut items_to_move);
+
+        Ok(self)
+        }
+    
 
     /// Perform each of these instructions in order on the set of stacks
     /// in `self`. Return the new set of stacks, or a `CraneError` if
@@ -276,7 +301,7 @@ mod tests {
     // Test that the instruction `move 2 from 0 to 1` works as expected with non-empty
     // stacks.
     #[test]
-    #[ignore = "We haven't implemented the `apply_instruction` method yet"]
+    // #[ignore = "We haven't implemented the `apply_instruction` method yet"]
     fn test_apply_instruction() {
         let stacks = Stacks {
             stacks: [
