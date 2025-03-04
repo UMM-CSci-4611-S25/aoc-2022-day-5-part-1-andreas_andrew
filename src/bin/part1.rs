@@ -73,39 +73,42 @@ impl Stacks {
 
             // check cases if instruction are trying to move more items than the stack has
             // like Stack 1 have A B but try to move 3 items from them
-        } else if self.stacks[instruction.from_stack].stack.len() < instruction.num_to_move{
+        } else if self.stacks[instruction.from_stack].stack.len() < instruction.num_to_move {
             return Err(CraneError::MoveFromEmptyStack);
-        } 
-        
+        }
+
         // removes last items in num_to_move and return them in items_to_move
         let mut items_to_move = self.stacks[instruction.from_stack]
             .stack
             .split_off(self.stacks[instruction.from_stack].stack.len() - instruction.num_to_move);
-        
+
         // reverse the order of moved items, so that it match the way boxes are move around stack
         // like if we move A B C from stack 1 to stack 2
         // it would be as A B C to stack 2 and the reverse order would be C B A (which is the correct order)
         items_to_move.reverse();
 
         // append reversed items to the stack that we want to move to
-        self.stacks[instruction.to_stack].stack.append(&mut items_to_move);
+        self.stacks[instruction.to_stack]
+            .stack
+            .append(&mut items_to_move);
 
         Ok(self)
-        }
-    
+    }
 
     /// Perform each of these instructions in order on the set of stacks
     /// in `self`. Return the new set of stacks, or a `CraneError` if
     /// any of the instructions are invalid.
     fn apply_instructions(self, instructions: &CraneInstructions) -> Result<Self, CraneError> {
-
         // we would want to return Crane error of any of the instruction would fails ?
         // we want to loop through each instruction one by one and apply them to the stack
         // iterates over all crane instructions
         // starting with the initial state of the stacks then apply instruction one by one?
-        instructions.instructions.iter().try_fold(self, |stacks, instruction | {
-            stacks.apply_instruction(instruction)
-        })
+        instructions
+            .instructions
+            .iter()
+            .try_fold(self, |stacks, instruction| {
+                stacks.apply_instruction(instruction)
+            })
     }
 
     /// Return a string containing the top character of each stack in order.
@@ -114,8 +117,18 @@ impl Stacks {
         // we need to get the top char from each stack -> copy it instead of moving it?
         // cases were stack is empty we return CraneError as well
 
-        // top char should be the last character in a stack 
-        todo!()
+        // top char should be the last character in a stack
+        let mut result = String::new();
+
+        for stack in &self.stacks {
+            if stack.stack.is_empty() {
+                return Err(CraneError::MoveFromEmptyStack);
+            }
+            // Add the top (last) character from each stack to our result string
+            result.push(*stack.stack.last().unwrap());
+        }
+
+        Ok(result)
     }
 }
 
@@ -148,11 +161,13 @@ impl FromStr for Stacks {
             let stack_contents: Vec<char> = parts.map(|c| c.chars().next().unwrap()).collect();
 
             // let stack_contents: Vec<char> = parts.flat_map(|s| s.chars()).collect();
-            // I think flatmap here is not needed for our tests but 
-            // i look into it and the flatmap would help when we have cases like 
-            // 1 AA B C and it would regconize as 1 A A B C 
+            // I think flatmap here is not needed for our tests but
+            // i look into it and the flatmap would help when we have cases like
+            // 1 AA B C and it would regconize as 1 A A B C
 
-            stacks[stack_num - 1] = Stack { stack: stack_contents };
+            stacks[stack_num - 1] = Stack {
+                stack: stack_contents,
+            };
         }
 
         Ok(Stacks { stacks })
@@ -174,14 +189,14 @@ impl FromStr for Stack {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-    let mut parts = s.split_ascii_whitespace();
-    parts.next(); // Skip the stack number
+        let mut parts = s.split_ascii_whitespace();
+        parts.next(); // Skip the stack number
 
-    let stack: Vec<char> = parts.map(|c| c.chars().next().unwrap()).collect();
+        let stack: Vec<char> = parts.map(|c| c.chars().next().unwrap()).collect();
 
-    // this is for if we use flat map 
-    // let stack: Vec<char> = s.split_ascii_whitespace().flat_map(|s| s.chars()).collect();
-    Ok(Stack { stack })
+        // this is for if we use flat map
+        // let stack: Vec<char> = s.split_ascii_whitespace().flat_map(|s| s.chars()).collect();
+        Ok(Stack { stack })
     }
 }
 
@@ -196,7 +211,7 @@ impl PartialEq<Vec<char>> for Stack {
         // } else {
         //     false
         // }
-        // This might cause stack overflow as 
+        // This might cause stack overflow as
         // it self == order causes infinite recursion because of self == other calls eq() recursively ?
         self.stack == *other
     }
@@ -228,9 +243,16 @@ impl FromStr for CraneInstruction {
 
         // if format is correctly follow then we extract an convert numbers to usize
         let num_to_move = parts[1].parse().map_err(|_| ParseError::InvalidFormat)?;
-        let from_stack = parts[3].parse().map_err(|_| ParseError::InvalidFormat)?;
-        let to_stack = parts[5].parse().map_err(|_| ParseError::InvalidFormat)?;
-        // if any parts that have number is not a number but like a character then we return invalid format
+        let from_stack = parts[3]
+            .parse::<usize>()
+            .map_err(|_| ParseError::InvalidFormat)?;
+        let to_stack = parts[5]
+            .parse::<usize>()
+            .map_err(|_| ParseError::InvalidFormat)?;
+
+        // Convert from 1-based indexing in the instructions to 0-based indexing in our code
+        let from_stack = from_stack.checked_sub(1).ok_or(ParseError::InvalidFormat)?;
+        let to_stack = to_stack.checked_sub(1).ok_or(ParseError::InvalidFormat)?;
 
         Ok(CraneInstruction {
             num_to_move,
@@ -251,7 +273,7 @@ impl FromStr for CraneInstructions {
         let instructions = s
             .lines()
             // converts each line into a CraneInstruction
-            .map(|line| line.parse()) 
+            .map(|line| line.parse())
             .collect::<Result<Vec<CraneInstruction>, ParseError>>()?;
 
         Ok(CraneInstructions { instructions })
@@ -288,18 +310,32 @@ mod tests {
     }
 
     // Test that we can parse instructions correctly.
+    // #[test]
+    // // #[ignore = "We haven't implemented instruction parsing yet"]
+    // fn test_instruction_parsing() {
+    //     let input = "move 1 from 2 to 1\nmove 3 from 1 to 3";
+    //     let instructions: CraneInstructions = input.parse().unwrap();
+    //     assert_eq!(2, instructions.instructions.len());
+    //     assert_eq!(1, instructions.instructions[0].num_to_move);
+    //     assert_eq!(1, instructions.instructions[0].to_stack);
+    //     assert_eq!(2, instructions.instructions[0].from_stack);
+    //     assert_eq!(3, instructions.instructions[1].num_to_move);
+    //     assert_eq!(3, instructions.instructions[1].to_stack);
+    //     assert_eq!(1, instructions.instructions[1].from_stack);
+    // }
+
+    // updated test to use 0 based indexing
     #[test]
-    // #[ignore = "We haven't implemented instruction parsing yet"]
     fn test_instruction_parsing() {
         let input = "move 1 from 2 to 1\nmove 3 from 1 to 3";
         let instructions: CraneInstructions = input.parse().unwrap();
         assert_eq!(2, instructions.instructions.len());
         assert_eq!(1, instructions.instructions[0].num_to_move);
-        assert_eq!(1, instructions.instructions[0].to_stack);
-        assert_eq!(2, instructions.instructions[0].from_stack);
+        assert_eq!(0, instructions.instructions[0].to_stack); 
+        assert_eq!(1, instructions.instructions[0].from_stack); 
         assert_eq!(3, instructions.instructions[1].num_to_move);
-        assert_eq!(3, instructions.instructions[1].to_stack);
-        assert_eq!(1, instructions.instructions[1].from_stack);
+        assert_eq!(2, instructions.instructions[1].to_stack); 
+        assert_eq!(0, instructions.instructions[1].from_stack); 
     }
 
     // You probably want some tests that check that `apply_instruction` works as expected.
